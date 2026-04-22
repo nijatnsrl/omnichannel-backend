@@ -4,7 +4,7 @@ const { pool } = require('../config/db');
 
 const register = async (req, res) => {
   try {
-    const { email, password, name, role } = req.body;
+    const { email, password, name, companyName, role } = req.body;
 
     const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userExists.rows.length > 0) {
@@ -14,14 +14,14 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      'INSERT INTO users (email, password, name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, name, role',
-      [email, hashedPassword, name, role || 'agent']
+      'INSERT INTO users (email, password, name, company_name, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, company_name, role',
+      [email, hashedPassword, name, companyName || 'My Company', role || 'agent']
     );
 
     const user = result.rows[0];
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role, companyName: user.company_name },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -50,7 +50,7 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role, companyName: user.company_name },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -60,6 +60,7 @@ const login = async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
+        company_name: user.company_name,
         role: user.role
       },
       token
