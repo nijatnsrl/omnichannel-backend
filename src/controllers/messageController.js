@@ -2,19 +2,22 @@ const { pool } = require('../config/db');
 
 const getConversations = async (req, res) => {
   try {
+    const { companyId } = req.user;
     const result = await pool.query(`
       SELECT 
         c.*,
         cu.name as customer_name,
-        cu.email as customer_email,
+        cu.phone as customer_phone,
         u.name as agent_name,
         (SELECT content FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message,
-        (SELECT created_at FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message_time
+        (SELECT created_at FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message_time,
+        (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id AND sender_type = 'customer') as unread_count
       FROM conversations c
       LEFT JOIN customers cu ON c.customer_id = cu.id
       LEFT JOIN users u ON c.assigned_to = u.id
+      WHERE c.company_id = $1
       ORDER BY c.updated_at DESC
-    `);
+    `, [companyId]);
 
     res.json(result.rows);
   } catch (error) {
@@ -26,7 +29,6 @@ const getConversations = async (req, res) => {
 const getMessages = async (req, res) => {
   try {
     const { conversationId } = req.params;
-
     const result = await pool.query(`
       SELECT m.*, u.name as sender_name
       FROM messages m
@@ -34,7 +36,6 @@ const getMessages = async (req, res) => {
       WHERE m.conversation_id = $1
       ORDER BY m.created_at ASC
     `, [conversationId]);
-
     res.json(result.rows);
   } catch (error) {
     console.error('Get messages error:', error);
@@ -49,11 +50,13 @@ const sendMessage = async (req, res) => {
 
     const result = await pool.query(`
       INSERT INTO messages (conversation_id, sender_type, sender_id, content, channel)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
+      VALUES ($1, $2, $3, $4, $5) RETURNING *
     `, [conversationId, 'agent', userId, content, channel]);
 
-    await pool.query('UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [conversationId]);
+    await pool.query(
+      'UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [conversationId]
+    );
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -62,4 +65,36 @@ const sendMessage = async (req, res) => {
   }
 };
 
-module.exports = { getConversations, getMessages, sendMessage };
+const createConversation = async (req, res) => {
+  try {
+    const { companyId, userId } = req.user;
+    const { customerName, channel, message } = req.body;
+
+    // Create customer
+    const customer = await pool.query(
+      'INSERT INTO customers (name, company_id) VALUES ($1, $2) RETURNING *',
+      [customerName, companyId]
+    );
+
+    // Create conversation
+    const conversation = await pool.query(
+      'INSERT INTO conversations (customer_id, channel, status, company_id, assigned_to) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [customer.rows[0].id, channel, 'open', companyId, userId]
+    );
+
+    // Create first message
+    if (message) {
+      await pool.query(
+        'INSERT INTO messages (conversation_id, sender_type, sender_id, content, channel) VALUES ($1, $2, $3, $4, $5)',
+        [conversation.rows[0].id, 'agent', userId, message, channel]
+      );
+    }
+
+    res.status(201).json(conversation.rows[0]);
+  } catch (error) {
+    console.error('Create conversation error:', error);
+    res.status(500).json({ error: 'Failed to create conversation' });
+  }
+};
+
+module.exports = { getConversations, getMessages, sendMessage, createConversation };
