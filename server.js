@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { pool } = require('./src/config/db');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 
@@ -15,6 +17,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/messages', require('./src/routes/messages'));
+app.use('/api/leads', require('./src/routes/leads'));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -24,55 +27,15 @@ app.get('/health', (req, res) => {
 // Database initialization
 const initDB = async () => {
   try {
-    // Add company_name column if it doesn't exist
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS company_name VARCHAR(255);
-    `);
+    // Run migration if exists
+    const migrationPath = path.join(__dirname, 'migrations', '001_enhanced_schema.sql');
+    if (fs.existsSync(migrationPath)) {
+      const migration = fs.readFileSync(migrationPath, 'utf8');
+      await pool.query(migration);
+      console.log('✅ Database migrations completed');
+    }
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        name VARCHAR(255) NOT NULL,
-        company_name VARCHAR(255),
-        role VARCHAR(50) DEFAULT 'agent',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS customers (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255),
-        phone VARCHAR(50),
-        whatsapp VARCHAR(50),
-        instagram VARCHAR(100),
-        company_id INTEGER REFERENCES users(id),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS conversations (
-        id SERIAL PRIMARY KEY,
-        customer_id INTEGER REFERENCES customers(id),
-        channel VARCHAR(50) NOT NULL,
-        status VARCHAR(50) DEFAULT 'open',
-        assigned_to INTEGER REFERENCES users(id),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS messages (
-        id SERIAL PRIMARY KEY,
-        conversation_id INTEGER REFERENCES conversations(id),
-        sender_type VARCHAR(50) NOT NULL,
-        sender_id INTEGER,
-        content TEXT NOT NULL,
-        channel VARCHAR(50) NOT NULL,
-        status VARCHAR(50) DEFAULT 'sent',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('✅ Database tables initialized successfully');
+    console.log('✅ Database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
   }
@@ -81,6 +44,6 @@ const initDB = async () => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, async () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 BagCRM Server running on port ${PORT}`);
   await initDB();
 });
