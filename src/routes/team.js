@@ -1,0 +1,10 @@
+const express = require('express');
+const { getTeam, inviteTeamMember, updateTeamMember, removeTeamMember } = require('../controllers/teamController');
+const auth = require('../middleware/auth');
+const router = express.Router();
+router.use(auth);
+router.get('/', getTeam);
+router.post('/', inviteTeamMember);
+router.put('/:id', updateTeamMember);
+router.delete('/:id', removeTeamMember);
+module.exports = router;

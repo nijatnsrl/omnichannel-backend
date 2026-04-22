@@ -1,0 +1,10 @@
+const express = require('express');
+const { getLeads, createLead, updateLead, deleteLead } = require('../controllers/leadsController');
+const auth = require('../middleware/auth');
+const router = express.Router();
+router.use(auth);
+router.get('/', getLeads);
+router.post('/', createLead);
+router.put('/:id', updateLead);
+router.delete('/:id', deleteLead);
+module.exports = router;

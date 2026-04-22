@@ -13,6 +13,10 @@ app.use(express.json());
 
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/messages', require('./src/routes/messages'));
+app.use('/api/leads', require('./src/routes/leads'));
+app.use('/api/customers', require('./src/routes/customers'));
+app.use('/api/analytics', require('./src/routes/analytics'));
+app.use('/api/team', require('./src/routes/team'));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'BagCRM Backend is running' });
@@ -35,12 +39,10 @@ const initDB = async () => {
         password VARCHAR(255) NOT NULL,
         name VARCHAR(255) NOT NULL,
         role VARCHAR(50) DEFAULT 'admin',
-        last_login TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
-    // Add missing columns if they don't exist
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id);`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;`);
 
@@ -101,7 +103,7 @@ const initDB = async () => {
 
     console.log('🎉 All tables initialized successfully');
   } catch (error) {
-    console.error('❌ Database initialization error:', error.message);
+    console.error('❌ Database error:', error.message);
   }
 };
 
