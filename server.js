@@ -1,9 +1,21 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 const { pool } = require('./src/config/db');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST']
+  }
+});
+
+// Make io available to routes
+app.set('io', io);
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -18,10 +30,22 @@ app.use('/api/leads', require('./src/routes/leads'));
 app.use('/api/customers', require('./src/routes/customers'));
 app.use('/api/analytics', require('./src/routes/analytics'));
 app.use('/api/team', require('./src/routes/team'));
-app.use('/webhook', require('./src/routes/webhook'));
-
-app.get('/health', (req, res) => {
+app.use('/webhook', require('./src/routes/webhookrequire('dotenv').confi, (req, res) => {
   res.json({ status: 'OK', message: 'BagCRM Backend is running' });
+});
+
+// Socket.io
+io.on('connection', (socket) => {
+  console.log('✅ Client connected:', socket.id);
+
+  socket.on('join_company', (companyId) => {
+    socket.join(`company_${companyId}`);
+    console.log(`Socket joined company_${companyId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('❌ Client disconnected:', socket.id);
+  });
 });
 
 const initDB = async () => {
@@ -41,7 +65,7 @@ const initDB = async () => {
 };
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
   console.log('🚀 BagCRM running on port ' + PORT);
   await initDB();
 });
