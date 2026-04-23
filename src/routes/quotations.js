@@ -1,0 +1,11 @@
+const express = require('express');
+const { getQuotations, createQuotation, updateQuotation, getActivities, createActivity } = require('../controllers/quotationController');
+const auth = require('../middleware/auth');
+const router = express.Router();
+router.use(auth);
+router.get('/', getQuotations);
+router.post('/', createQuotation);
+router.put('/:id', updateQuotation);
+router.get('/activities/:leadId', getActivities);
+router.post('/activities', createActivity);
+module.exports = router;
