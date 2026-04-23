@@ -35,6 +35,7 @@ const createLead = async (req, res) => {
 };
 
 const updateLead = async (req, res) => {
+  // auto-create customer logic at end
   try {
     const { companyId } = req.user;
     const { id } = req.params;
@@ -45,6 +46,26 @@ const updateLead = async (req, res) => {
        WHERE id=$9 AND company_id=$10 RETURNING *`,
       [name, company, email, phone, stage, value, source, notes, id, companyId]
     );
+    
+    // Auto-create customer when lead is won
+    if (req.body.stage === 'won') {
+      try {
+        const existing = await pool.query(
+          'SELECT id FROM customers WHERE company_id=$1 AND (email=$2 OR phone=$3) LIMIT 1',
+          [companyId, req.body.email || '', req.body.phone || '']
+        );
+        if (!existing.rows[0]) {
+          await pool.query(
+            `INSERT INTO customers (company_id, name, email, phone, company, type, notes) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [companyId, req.body.name, req.body.email || '', req.body.phone || '', 
+             req.body.company || '', req.body.company ? 'company' : 'individual',
+             'Auto-created from won lead']
+          );
+        }
+      } catch (e) { console.log('Customer auto-create skipped:', e.message); }
+    }
+    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Update lead error:', error);
