@@ -20,6 +20,7 @@ app.use('/api/customers', require('./src/routes/customers'));
 app.use('/api/analytics', require('./src/routes/analytics'));
 app.use('/api/team', require('./src/routes/team'));
 app.use('/api/quotations', require('./src/routes/quotations'));
+app.use('/api/products', require('./src/routes/products'));
 
 app.get('/health', (req, res) => res.json({ status: 'OK', message: 'Bag CRM running' }));
 
@@ -86,6 +87,32 @@ const initDB = async () => {
       )
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        company_id INTEGER REFERENCES companies(id),
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        price DECIMAL(10,2) DEFAULT 0,
+        currency VARCHAR(10) DEFAULT 'AZN',
+        sku VARCHAR(100),
+        stock INTEGER DEFAULT 0,
+        category VARCHAR(100),
+        unit VARCHAR(50) DEFAULT 'ədəd',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT \'individual\'');
+    await pool.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS company VARCHAR(255)');
+    await pool.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS address TEXT');
+    await pool.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS tax_id VARCHAR(100)');
+    await pool.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS notes TEXT');
+    await pool.query('ALTER TABLE quotations ADD COLUMN IF NOT EXISTS subtotal DECIMAL(10,2) DEFAULT 0');
+    await pool.query('ALTER TABLE quotations ADD COLUMN IF NOT EXISTS tax_rate DECIMAL(5,2) DEFAULT 18');
+    await pool.query('ALTER TABLE quotations ADD COLUMN IF NOT EXISTS tax_amount DECIMAL(10,2) DEFAULT 0');
+    await pool.query('ALTER TABLE quotations ADD COLUMN IF NOT EXISTS discount DECIMAL(10,2) DEFAULT 0');
+    await pool.query('ALTER TABLE quotations ADD COLUMN IF NOT EXISTS terms TEXT');
     console.log('All tables ready');
   } catch (error) {
     console.error('DB error:', error.message);
