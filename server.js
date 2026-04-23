@@ -15,6 +15,7 @@ const io = new Server(server, {
 app.set('io', io);
 app.use(cors({ origin: '*', credentials: false }));
 app.use(express.json());
+app.use(require('express').static('public'));
 
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/messages', require('./src/routes/messages'));
@@ -22,6 +23,7 @@ app.use('/api/leads', require('./src/routes/leads'));
 app.use('/api/customers', require('./src/routes/customers'));
 app.use('/api/analytics', require('./src/routes/analytics'));
 app.use('/api/team', require('./src/routes/team'));
+app.use('/api/widget', require('./src/routes/widget'));
 
 app.get('/health', (req, res) => res.json({ status: 'OK', message: 'Bag CRM Backend running' }));
 
