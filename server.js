@@ -7,12 +7,75 @@ const { pool } = require('./src/config/db');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: process.env.FRONTEND_URL || 'http://localhost:3000', methods: ['GET','POST'] }
-});
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://omnichannel-crm-delta.vercel.app',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for now
+    }
+  },
+  credentials: true
+};
+
+const io = new Server(server, { cors: corsOptions });
 
 app.set('io', io);
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true }));
+app.use(cors(corsOptions));
+app.use(express.json());
+
+app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/messages', require('./src/routes/messages'));
+app.use('/api/leads', require('./src/routes/leads'));
+app.use('/api/customers', require('./src/routes/customers'));
+app.use('/api/analytics', require('./src/routes/analytics'));
+app.use('/api/team', require('./src/routes/team'));
+
+app.get('/health', (req, res) => res.json({ status: 'OK', message: 'Bağ CRM Backend running' }));
+
+io.on('connection', (socket) => {
+  socket.on('join_company', (companyId) => socket.join(`company_
+cat > server.js << 'EOF'
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
+const { pool } = require('./src/config/db');
+
+const app = express();
+const server = http.createServer(app);
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://omnichannel-crm-delta.vercel.app',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for now
+    }
+  },
+  credentials: true
+};
+
+const io = new Server(server, { cors: corsOptions });
+
+app.set('io', io);
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use('/api/auth', require('./src/routes/auth'));
