@@ -33,7 +33,6 @@ const register = async (req, res) => {
     const user = userResult.rows[0];
 
     // Create sample data for demo
-    await createSampleData(client, company.id, user.id, name);
 
     await client.query('COMMIT');
 

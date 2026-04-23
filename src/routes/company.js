@@ -1,0 +1,10 @@
+const express = require('express');
+const { getCompany, updateCompany, loadDemoData, resetData } = require('../controllers/companyController');
+const auth = require('../middleware/auth');
+const router = express.Router();
+router.use(auth);
+router.get('/', getCompany);
+router.put('/', updateCompany);
+router.post('/demo-data', loadDemoData);
+router.post('/reset', resetData);
+module.exports = router;

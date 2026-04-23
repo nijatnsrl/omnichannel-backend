@@ -22,6 +22,7 @@ app.use('/api/team', require('./src/routes/team'));
 app.use('/api/quotations', require('./src/routes/quotations'));
 app.use('/api/products', require('./src/routes/products'));
 app.use('/api/insights', require('./src/routes/insights'));
+app.use('/api/company', require('./src/routes/company'));
 
 app.get('/health', (req, res) => res.json({ status: 'OK', message: 'Bag CRM running' }));
 
@@ -114,6 +115,14 @@ const initDB = async () => {
     await pool.query('ALTER TABLE quotations ADD COLUMN IF NOT EXISTS tax_amount DECIMAL(10,2) DEFAULT 0');
     await pool.query('ALTER TABLE quotations ADD COLUMN IF NOT EXISTS discount DECIMAL(10,2) DEFAULT 0');
     await pool.query('ALTER TABLE quotations ADD COLUMN IF NOT EXISTS terms TEXT');
+    await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP DEFAULT (NOW() + INTERVAL '14 days')");
+    await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'trial'");
+    await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS industry VARCHAR(100)");
+    await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS logo_url TEXT");
+    await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS website VARCHAR(255)");
+    await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS phone VARCHAR(50)");
+    await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS address TEXT");
+    await pool.query("UPDATE companies SET trial_ends_at = NOW() + INTERVAL '14 days' WHERE trial_ends_at IS NULL");
     console.log('All tables ready');
   } catch (error) {
     console.error('DB error:', error.message);
