@@ -1,0 +1,12 @@
+const express = require('express');
+const auth = require('../middleware/auth');
+const bulk = require('../controllers/bulkController');
+const router = express.Router();
+router.use(auth);
+router.get('/leads/export', bulk.exportLeads);
+router.post('/leads/import', bulk.importLeads);
+router.get('/customers/export', bulk.exportCustomers);
+router.post('/customers/import', bulk.importCustomers);
+router.get('/products/export', bulk.exportProducts);
+router.post('/products/import', bulk.importProducts);
+module.exports = router;

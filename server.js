@@ -23,6 +23,7 @@ app.use('/api/quotations', require('./src/routes/quotations'));
 app.use('/api/products', require('./src/routes/products'));
 app.use('/api/insights', require('./src/routes/insights'));
 app.use('/api/company', require('./src/routes/company'));
+app.use('/api/bulk', require('./src/routes/bulk'));
 
 app.get('/health', (req, res) => res.json({ status: 'OK', message: 'Bag CRM running' }));
 
