@@ -24,6 +24,8 @@ app.use('/api/products', require('./src/routes/products'));
 app.use('/api/insights', require('./src/routes/insights'));
 app.use('/api/company', require('./src/routes/company'));
 app.use('/api/bulk', require('./src/routes/bulk'));
+app.use('/api/bookings', require('./src/routes/bookings'));
+app.use('/api/photos', require('./src/routes/photos'));
 
 app.get('/health', (req, res) => res.json({ status: 'OK', message: 'Bag CRM running' }));
 
@@ -124,6 +126,48 @@ const initDB = async () => {
     await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS phone VARCHAR(50)");
     await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS address TEXT");
     await pool.query("UPDATE companies SET trial_ends_at = NOW() + INTERVAL '14 days' WHERE trial_ends_at IS NULL");
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bookings (
+        id SERIAL PRIMARY KEY,
+        company_id INTEGER REFERENCES companies(id),
+        customer_id INTEGER REFERENCES customers(id),
+        lead_id INTEGER,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        type VARCHAR(50) DEFAULT 'appointment',
+        start_time TIMESTAMP NOT NULL,
+        end_time TIMESTAMP NOT NULL,
+        duration_minutes INTEGER DEFAULT 60,
+        location VARCHAR(255),
+        assigned_to INTEGER REFERENCES users(id),
+        service_id INTEGER,
+        status VARCHAR(50) DEFAULT 'scheduled',
+        price DECIMAL(10,2),
+        currency VARCHAR(10) DEFAULT 'AZN',
+        notes TEXT,
+        reminder_sent BOOLEAN DEFAULT FALSE,
+        created_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS photos (
+        id SERIAL PRIMARY KEY,
+        company_id INTEGER REFERENCES companies(id),
+        customer_id INTEGER REFERENCES customers(id),
+        booking_id INTEGER REFERENCES bookings(id),
+        lead_id INTEGER,
+        url TEXT NOT NULL,
+        caption VARCHAR(255),
+        category VARCHAR(50) DEFAULT 'general',
+        uploaded_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query("CREATE INDEX IF NOT EXISTS idx_bookings_start ON bookings(start_time)");
+    await pool.query("CREATE INDEX IF NOT EXISTS idx_bookings_company ON bookings(company_id)");
+    await pool.query("CREATE INDEX IF NOT EXISTS idx_photos_customer ON photos(customer_id)");
     console.log('All tables ready');
   } catch (error) {
     console.error('DB error:', error.message);

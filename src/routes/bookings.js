@@ -1,0 +1,13 @@
+const express = require('express');
+const auth = require('../middleware/auth');
+const ctrl = require('../controllers/bookingsController');
+const router = express.Router();
+router.use(auth);
+router.get('/', ctrl.getBookings);
+router.get('/upcoming', ctrl.getUpcoming);
+router.get('/reminders', ctrl.getReminders);
+router.post('/', ctrl.createBooking);
+router.put('/:id', ctrl.updateBooking);
+router.delete('/:id', ctrl.deleteBooking);
+router.post('/:id/reminder-sent', ctrl.markReminderSent);
+module.exports = router;
